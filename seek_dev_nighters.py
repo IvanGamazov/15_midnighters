@@ -2,16 +2,16 @@ import requests
 import datetime
 import time
 import argparse
-from pytz import timezone
+import pytz
 
 parser = argparse.ArgumentParser()
 parser.add_argument("time", nargs='?', help="Время в формате 'hh:mm'")
 args = parser.parse_args()
 
-API_PAGE_URL = 'https://devman.org/api/challenges/solution_attempts/?'
+API_PAGE_URL = 'https://devman.org/api/challenges/solution_attempts/'
 
 
-def get_time():
+def input_night_time():
     correct_input = False
     while not correct_input:
         sometime = input('До которого часа ночь? -->')
@@ -37,39 +37,40 @@ def load_attempts(page_count):
             }
 
 
-def make_time_from_timestamp(attempt):
-    default_time = datetime.time(0, 0)
-    if attempt['timestamp'] is not None:
-        attempt_time = datetime.datetime.fromtimestamp(attempt['timestamp'],
-                                                       tz=timezone(attempt['timezone']))
+def make_time_from_timestamp(timestamp, timezone):
+    if timestamp is not None:
+        attempt_time = datetime.datetime.fromtimestamp(timestamp,
+                                                       tz=pytz.timezone(timezone))
         attempt_time = attempt_time.time()
         return attempt_time
     else:
-        return default_time
+        return datetime.time(0, 0)
 
 
 def find_midnighters(attempts, night_end_time):
-    needed_people = list(filter(lambda attempt: datetime.time(0, 0) <
-                                                make_time_from_timestamp(attempt)
-                                                < night_end_time, attempts))
-    return needed_people
+    midnighters = list(filter(lambda attempt:
+                                datetime.time(0, 0) <
+                                make_time_from_timestamp(attempt['timestamp'], attempt['timezone'])
+                                < night_end_time, attempts))
+    return midnighters
 
 
 if __name__ == '__main__':
-    # print(args)
     if not args.time:
-        night_time = get_time()
+        night_time = input_night_time()
     else:
         try:
             given_arg = time.strptime(args.time, "%H:%M")
             night_time = datetime.time(given_arg.tm_hour, given_arg.tm_min)
         except ValueError:
             print('Неверный формат параметра, необходимо "hh:mm".')
-            night_time = get_time()
+            night_time = input_night_time()
     payload = {'page': 2}
     response = requests.get(API_PAGE_URL, params=payload)
     pages = response.json()['number_of_pages']
     attempts = load_attempts(pages)
     midnighters = find_midnighters(attempts, night_time)
     for human in midnighters:
-        print(human['username'], make_time_from_timestamp(human), human['timezone'])
+        print(human['username'],
+              make_time_from_timestamp(human['timestamp'], human['timezone']),
+              human['timezone'])
