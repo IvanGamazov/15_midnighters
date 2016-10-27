@@ -6,7 +6,7 @@ import pytz
 
 parser = argparse.ArgumentParser()
 parser.add_argument("time", nargs='?', help="Время в формате 'hh:mm'")
-args = parser.parse_args()
+
 
 API_PAGE_URL = 'https://devman.org/api/challenges/solution_attempts/'
 
@@ -56,6 +56,7 @@ def find_midnighters(attempts, night_end_time):
 
 
 if __name__ == '__main__':
+    args = parser.parse_args()
     if not args.time:
         night_time = input_night_time()
     else:
